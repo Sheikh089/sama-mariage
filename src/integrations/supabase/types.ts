@@ -150,7 +150,30 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
-      [_ in never]: never
+      get_invitation_by_token: {
+        Args: { _token: string }
+        Returns: {
+          companions: number
+          event_cover_image_url: string
+          event_date: string
+          event_description: string
+          event_id: string
+          event_location: string
+          event_title: string
+          event_type: Database["public"]["Enums"]["event_type"]
+          full_name: string
+          guest_id: string
+          rsvp_status: Database["public"]["Enums"]["rsvp_status"]
+        }[]
+      }
+      submit_rsvp: {
+        Args: {
+          _companions: number
+          _status: Database["public"]["Enums"]["rsvp_status"]
+          _token: string
+        }
+        Returns: boolean
+      }
     }
     Enums: {
       event_status: "brouillon" | "publie" | "termine" | "annule"
