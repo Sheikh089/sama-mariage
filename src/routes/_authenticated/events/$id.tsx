@@ -97,7 +97,6 @@ function EventDetail() {
   };
 
   const uploadCover = async (file: File) => {
-    const { user } = Route.useRouteContext.call(null) ?? {};
     const { data: { user: u } } = await supabase.auth.getUser();
     if (!u) return;
     const ext = file.name.split(".").pop();
