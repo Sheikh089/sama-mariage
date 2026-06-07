@@ -18,12 +18,14 @@ export type Database = {
         Row: {
           cover_image_url: string | null
           created_at: string
+          custom_message: string | null
           description: string | null
           event_date: string | null
           id: string
           location: string | null
           max_guests: number
           status: Database["public"]["Enums"]["event_status"]
+          template: Database["public"]["Enums"]["invitation_template"]
           title: string
           type: Database["public"]["Enums"]["event_type"]
           updated_at: string
@@ -32,12 +34,14 @@ export type Database = {
         Insert: {
           cover_image_url?: string | null
           created_at?: string
+          custom_message?: string | null
           description?: string | null
           event_date?: string | null
           id?: string
           location?: string | null
           max_guests?: number
           status?: Database["public"]["Enums"]["event_status"]
+          template?: Database["public"]["Enums"]["invitation_template"]
           title: string
           type?: Database["public"]["Enums"]["event_type"]
           updated_at?: string
@@ -46,12 +50,14 @@ export type Database = {
         Update: {
           cover_image_url?: string | null
           created_at?: string
+          custom_message?: string | null
           description?: string | null
           event_date?: string | null
           id?: string
           location?: string | null
           max_guests?: number
           status?: Database["public"]["Enums"]["event_status"]
+          template?: Database["public"]["Enums"]["invitation_template"]
           title?: string
           type?: Database["public"]["Enums"]["event_type"]
           updated_at?: string
@@ -183,6 +189,12 @@ export type Database = {
         | "fiancailles"
         | "anniversaire"
         | "autre"
+      invitation_template:
+        | "traditionnel"
+        | "moderne"
+        | "luxe"
+        | "minimaliste"
+        | "gold_premium"
       rsvp_status: "en_attente" | "confirme" | "refuse"
     }
     CompositeTypes: {
@@ -318,6 +330,13 @@ export const Constants = {
         "fiancailles",
         "anniversaire",
         "autre",
+      ],
+      invitation_template: [
+        "traditionnel",
+        "moderne",
+        "luxe",
+        "minimaliste",
+        "gold_premium",
       ],
       rsvp_status: ["en_attente", "confirme", "refuse"],
     },
