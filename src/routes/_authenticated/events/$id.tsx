@@ -17,8 +17,11 @@ import {
   AlertDialogTrigger,
 } from "@/components/ui/alert-dialog";
 import { toast } from "sonner";
-import { ArrowLeft, Plus, Upload, Trash2, ImagePlus, Users, CheckCircle2, Clock, XCircle } from "lucide-react";
+import { ArrowLeft, Plus, Upload, Trash2, ImagePlus, Users, CheckCircle2, Clock, XCircle, QrCode, Copy, Sparkles } from "lucide-react";
 import Papa from "papaparse";
+import { TEMPLATES, type Template } from "@/lib/invitation-templates";
+import { InvitationCard } from "@/components/InvitationCard";
+import { Textarea } from "@/components/ui/textarea";
 
 export const Route = createFileRoute("/_authenticated/events/$id")({
   head: () => ({ meta: [{ title: "Événement — Sama Mariage" }] }),
@@ -56,6 +59,30 @@ function EventDetail() {
 
   const [guestForm, setGuestForm] = useState({ full_name: "", email: "", phone: "", companions: 0 });
   const [guestOpen, setGuestOpen] = useState(false);
+  const [qrGuest, setQrGuest] = useState<typeof guests[number] | null>(null);
+  const [customMessage, setCustomMessage] = useState<string | null>(null);
+
+  const updateTemplate = async (tpl: Template) => {
+    const { error } = await supabase.from("events").update({ template: tpl }).eq("id", id);
+    if (error) return toast.error(error.message);
+    toast.success("Modèle mis à jour");
+    qc.invalidateQueries({ queryKey: ["event", id] });
+  };
+
+  const saveCustomMessage = async () => {
+    const { error } = await supabase.from("events").update({ custom_message: customMessage }).eq("id", id);
+    if (error) return toast.error(error.message);
+    toast.success("Message enregistré");
+    qc.invalidateQueries({ queryKey: ["event", id] });
+  };
+
+  const inviteUrlFor = (token: string) =>
+    typeof window !== "undefined" ? `${window.location.origin}/i/${token}` : `/i/${token}`;
+
+  const copyLink = async (token: string) => {
+    await navigator.clipboard.writeText(inviteUrlFor(token));
+    toast.success("Lien copié");
+  };
 
   const addGuest = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -228,6 +255,66 @@ function EventDetail() {
         ))}
       </div>
 
+      {/* Template & invitation card */}
+      <div className="mt-8 grid gap-6 lg:grid-cols-[1fr_auto]">
+        <div className="rounded-2xl border border-border bg-card p-6">
+          <div className="flex items-center gap-2">
+            <Sparkles className="h-5 w-5 text-gold" />
+            <h2 className="font-display text-2xl font-semibold">Modèle d'invitation</h2>
+          </div>
+          <p className="mt-1 text-sm text-muted-foreground">Choisissez l'ambiance de votre carte.</p>
+          <div className="mt-5 grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-5">
+            {TEMPLATES.map((t) => (
+              <button
+                key={t.id}
+                type="button"
+                onClick={() => updateTemplate(t.id)}
+                className={`group overflow-hidden rounded-xl border-2 text-left transition ${
+                  event.template === t.id ? "border-gold ring-2 ring-gold/30" : "border-border hover:border-gold/50"
+                }`}
+              >
+                <div className="aspect-[3/4]" style={{ background: t.preview }} />
+                <div className="p-2">
+                  <div className="text-xs font-semibold">{t.name}</div>
+                  <div className="text-[10px] text-muted-foreground">{t.description}</div>
+                </div>
+              </button>
+            ))}
+          </div>
+
+          <div className="mt-6">
+            <Label>Message personnalisé (optionnel)</Label>
+            <Textarea
+              rows={2}
+              placeholder="Un mot pour vos invités…"
+              value={customMessage ?? event.custom_message ?? ""}
+              onChange={(e) => setCustomMessage(e.target.value)}
+            />
+            <Button size="sm" variant="outline" className="mt-2" onClick={saveCustomMessage}>
+              Enregistrer le message
+            </Button>
+          </div>
+        </div>
+
+        <div className="lg:w-[380px]">
+          <p className="mb-3 text-center text-xs uppercase tracking-widest text-muted-foreground">Aperçu</p>
+          <InvitationCard
+            data={{
+              guestName: "Nom de l'invité",
+              eventTitle: event.title,
+              eventType: event.type,
+              eventDate: event.event_date,
+              eventLocation: event.location,
+              eventDescription: event.description,
+              customMessage: customMessage ?? event.custom_message,
+              coverImageUrl: event.cover_image_url,
+              template: event.template,
+              inviteUrl: inviteUrlFor("preview"),
+            }}
+          />
+        </div>
+      </div>
+
       {/* Guests */}
       <div className="mt-8 rounded-2xl border border-border bg-card">
         <div className="flex flex-wrap items-center justify-between gap-3 border-b border-border p-5">
@@ -310,9 +397,17 @@ function EventDetail() {
                     </span>
                   </TableCell>
                   <TableCell className="text-right">
-                    <Button variant="ghost" size="icon" onClick={() => removeGuest(g.id)}>
-                      <Trash2 className="h-4 w-4" />
-                    </Button>
+                    <div className="flex justify-end gap-1">
+                      <Button variant="ghost" size="icon" title="Copier le lien" onClick={() => copyLink(g.invite_token)}>
+                        <Copy className="h-4 w-4" />
+                      </Button>
+                      <Button variant="ghost" size="icon" title="Voir l'invitation & QR" onClick={() => setQrGuest(g)}>
+                        <QrCode className="h-4 w-4" />
+                      </Button>
+                      <Button variant="ghost" size="icon" onClick={() => removeGuest(g.id)}>
+                        <Trash2 className="h-4 w-4" />
+                      </Button>
+                    </div>
                   </TableCell>
                 </TableRow>
               ))}
@@ -320,6 +415,39 @@ function EventDetail() {
           </Table>
         )}
       </div>
+
+      {/* Per-guest invitation dialog */}
+      <Dialog open={!!qrGuest} onOpenChange={(o) => !o && setQrGuest(null)}>
+        <DialogContent className="max-w-md">
+          <DialogHeader>
+            <DialogTitle>Invitation de {qrGuest?.full_name}</DialogTitle>
+          </DialogHeader>
+          {qrGuest && (
+            <div className="space-y-4">
+              <InvitationCard
+                data={{
+                  guestName: qrGuest.full_name,
+                  eventTitle: event.title,
+                  eventType: event.type,
+                  eventDate: event.event_date,
+                  eventLocation: event.location,
+                  eventDescription: event.description,
+                  customMessage: event.custom_message,
+                  coverImageUrl: event.cover_image_url,
+                  template: event.template,
+                  inviteUrl: inviteUrlFor(qrGuest.invite_token),
+                }}
+              />
+              <div className="flex items-center gap-2 rounded-lg border bg-muted/30 p-2">
+                <code className="flex-1 truncate text-xs">{inviteUrlFor(qrGuest.invite_token)}</code>
+                <Button size="sm" variant="outline" onClick={() => copyLink(qrGuest.invite_token)}>
+                  <Copy className="h-3 w-3" />
+                </Button>
+              </div>
+            </div>
+          )}
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }
