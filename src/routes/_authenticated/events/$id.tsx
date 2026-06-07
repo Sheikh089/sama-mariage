@@ -17,8 +17,11 @@ import {
   AlertDialogTrigger,
 } from "@/components/ui/alert-dialog";
 import { toast } from "sonner";
-import { ArrowLeft, Plus, Upload, Trash2, ImagePlus, Users, CheckCircle2, Clock, XCircle } from "lucide-react";
+import { ArrowLeft, Plus, Upload, Trash2, ImagePlus, Users, CheckCircle2, Clock, XCircle, QrCode, Copy, Sparkles } from "lucide-react";
 import Papa from "papaparse";
+import { TEMPLATES, type Template } from "@/lib/invitation-templates";
+import { InvitationCard } from "@/components/InvitationCard";
+import { Textarea } from "@/components/ui/textarea";
 
 export const Route = createFileRoute("/_authenticated/events/$id")({
   head: () => ({ meta: [{ title: "Événement — Sama Mariage" }] }),
