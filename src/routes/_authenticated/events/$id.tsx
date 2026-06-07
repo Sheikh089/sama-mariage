@@ -255,6 +255,66 @@ function EventDetail() {
         ))}
       </div>
 
+      {/* Template & invitation card */}
+      <div className="mt-8 grid gap-6 lg:grid-cols-[1fr_auto]">
+        <div className="rounded-2xl border border-border bg-card p-6">
+          <div className="flex items-center gap-2">
+            <Sparkles className="h-5 w-5 text-gold" />
+            <h2 className="font-display text-2xl font-semibold">Modèle d'invitation</h2>
+          </div>
+          <p className="mt-1 text-sm text-muted-foreground">Choisissez l'ambiance de votre carte.</p>
+          <div className="mt-5 grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-5">
+            {TEMPLATES.map((t) => (
+              <button
+                key={t.id}
+                type="button"
+                onClick={() => updateTemplate(t.id)}
+                className={`group overflow-hidden rounded-xl border-2 text-left transition ${
+                  event.template === t.id ? "border-gold ring-2 ring-gold/30" : "border-border hover:border-gold/50"
+                }`}
+              >
+                <div className="aspect-[3/4]" style={{ background: t.preview }} />
+                <div className="p-2">
+                  <div className="text-xs font-semibold">{t.name}</div>
+                  <div className="text-[10px] text-muted-foreground">{t.description}</div>
+                </div>
+              </button>
+            ))}
+          </div>
+
+          <div className="mt-6">
+            <Label>Message personnalisé (optionnel)</Label>
+            <Textarea
+              rows={2}
+              placeholder="Un mot pour vos invités…"
+              value={customMessage ?? event.custom_message ?? ""}
+              onChange={(e) => setCustomMessage(e.target.value)}
+            />
+            <Button size="sm" variant="outline" className="mt-2" onClick={saveCustomMessage}>
+              Enregistrer le message
+            </Button>
+          </div>
+        </div>
+
+        <div className="lg:w-[380px]">
+          <p className="mb-3 text-center text-xs uppercase tracking-widest text-muted-foreground">Aperçu</p>
+          <InvitationCard
+            data={{
+              guestName: "Nom de l'invité",
+              eventTitle: event.title,
+              eventType: event.type,
+              eventDate: event.event_date,
+              eventLocation: event.location,
+              eventDescription: event.description,
+              customMessage: customMessage ?? event.custom_message,
+              coverImageUrl: event.cover_image_url,
+              template: event.template,
+              inviteUrl: inviteUrlFor("preview"),
+            }}
+          />
+        </div>
+      </div>
+
       {/* Guests */}
       <div className="mt-8 rounded-2xl border border-border bg-card">
         <div className="flex flex-wrap items-center justify-between gap-3 border-b border-border p-5">
