@@ -397,9 +397,17 @@ function EventDetail() {
                     </span>
                   </TableCell>
                   <TableCell className="text-right">
-                    <Button variant="ghost" size="icon" onClick={() => removeGuest(g.id)}>
-                      <Trash2 className="h-4 w-4" />
-                    </Button>
+                    <div className="flex justify-end gap-1">
+                      <Button variant="ghost" size="icon" title="Copier le lien" onClick={() => copyLink(g.invite_token)}>
+                        <Copy className="h-4 w-4" />
+                      </Button>
+                      <Button variant="ghost" size="icon" title="Voir l'invitation & QR" onClick={() => setQrGuest(g)}>
+                        <QrCode className="h-4 w-4" />
+                      </Button>
+                      <Button variant="ghost" size="icon" onClick={() => removeGuest(g.id)}>
+                        <Trash2 className="h-4 w-4" />
+                      </Button>
+                    </div>
                   </TableCell>
                 </TableRow>
               ))}
