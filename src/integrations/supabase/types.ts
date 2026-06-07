@@ -161,10 +161,12 @@ export type Database = {
         Returns: {
           companions: number
           event_cover_image_url: string
+          event_custom_message: string
           event_date: string
           event_description: string
           event_id: string
           event_location: string
+          event_template: Database["public"]["Enums"]["invitation_template"]
           event_title: string
           event_type: Database["public"]["Enums"]["event_type"]
           full_name: string
