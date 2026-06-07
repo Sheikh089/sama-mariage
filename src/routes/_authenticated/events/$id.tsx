@@ -59,6 +59,30 @@ function EventDetail() {
 
   const [guestForm, setGuestForm] = useState({ full_name: "", email: "", phone: "", companions: 0 });
   const [guestOpen, setGuestOpen] = useState(false);
+  const [qrGuest, setQrGuest] = useState<typeof guests[number] | null>(null);
+  const [customMessage, setCustomMessage] = useState<string | null>(null);
+
+  const updateTemplate = async (tpl: Template) => {
+    const { error } = await supabase.from("events").update({ template: tpl }).eq("id", id);
+    if (error) return toast.error(error.message);
+    toast.success("Modèle mis à jour");
+    qc.invalidateQueries({ queryKey: ["event", id] });
+  };
+
+  const saveCustomMessage = async () => {
+    const { error } = await supabase.from("events").update({ custom_message: customMessage }).eq("id", id);
+    if (error) return toast.error(error.message);
+    toast.success("Message enregistré");
+    qc.invalidateQueries({ queryKey: ["event", id] });
+  };
+
+  const inviteUrlFor = (token: string) =>
+    typeof window !== "undefined" ? `${window.location.origin}/i/${token}` : `/i/${token}`;
+
+  const copyLink = async (token: string) => {
+    await navigator.clipboard.writeText(inviteUrlFor(token));
+    toast.success("Lien copié");
+  };
 
   const addGuest = async (e: React.FormEvent) => {
     e.preventDefault();
