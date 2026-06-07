@@ -14,6 +14,110 @@ export type Database = {
   }
   public: {
     Tables: {
+      events: {
+        Row: {
+          cover_image_url: string | null
+          created_at: string
+          description: string | null
+          event_date: string | null
+          id: string
+          location: string | null
+          max_guests: number
+          status: Database["public"]["Enums"]["event_status"]
+          title: string
+          type: Database["public"]["Enums"]["event_type"]
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          cover_image_url?: string | null
+          created_at?: string
+          description?: string | null
+          event_date?: string | null
+          id?: string
+          location?: string | null
+          max_guests?: number
+          status?: Database["public"]["Enums"]["event_status"]
+          title: string
+          type?: Database["public"]["Enums"]["event_type"]
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          cover_image_url?: string | null
+          created_at?: string
+          description?: string | null
+          event_date?: string | null
+          id?: string
+          location?: string | null
+          max_guests?: number
+          status?: Database["public"]["Enums"]["event_status"]
+          title?: string
+          type?: Database["public"]["Enums"]["event_type"]
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
+      guests: {
+        Row: {
+          checked_in_at: string | null
+          companions: number
+          created_at: string
+          email: string | null
+          event_id: string
+          full_name: string
+          id: string
+          invite_token: string
+          notes: string | null
+          phone: string | null
+          rsvp_at: string | null
+          rsvp_status: Database["public"]["Enums"]["rsvp_status"]
+          table_number: string | null
+          updated_at: string
+        }
+        Insert: {
+          checked_in_at?: string | null
+          companions?: number
+          created_at?: string
+          email?: string | null
+          event_id: string
+          full_name: string
+          id?: string
+          invite_token?: string
+          notes?: string | null
+          phone?: string | null
+          rsvp_at?: string | null
+          rsvp_status?: Database["public"]["Enums"]["rsvp_status"]
+          table_number?: string | null
+          updated_at?: string
+        }
+        Update: {
+          checked_in_at?: string | null
+          companions?: number
+          created_at?: string
+          email?: string | null
+          event_id?: string
+          full_name?: string
+          id?: string
+          invite_token?: string
+          notes?: string | null
+          phone?: string | null
+          rsvp_at?: string | null
+          rsvp_status?: Database["public"]["Enums"]["rsvp_status"]
+          table_number?: string | null
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "guests_event_id_fkey"
+            columns: ["event_id"]
+            isOneToOne: false
+            referencedRelation: "events"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       profiles: {
         Row: {
           avatar_url: string | null
@@ -49,7 +153,14 @@ export type Database = {
       [_ in never]: never
     }
     Enums: {
-      [_ in never]: never
+      event_status: "brouillon" | "publie" | "termine" | "annule"
+      event_type:
+        | "mariage"
+        | "bapteme"
+        | "fiancailles"
+        | "anniversaire"
+        | "autre"
+      rsvp_status: "en_attente" | "confirme" | "refuse"
     }
     CompositeTypes: {
       [_ in never]: never
@@ -176,6 +287,16 @@ export type CompositeTypes<
 
 export const Constants = {
   public: {
-    Enums: {},
+    Enums: {
+      event_status: ["brouillon", "publie", "termine", "annule"],
+      event_type: [
+        "mariage",
+        "bapteme",
+        "fiancailles",
+        "anniversaire",
+        "autre",
+      ],
+      rsvp_status: ["en_attente", "confirme", "refuse"],
+    },
   },
 } as const
