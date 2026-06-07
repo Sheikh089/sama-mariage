@@ -2,7 +2,7 @@ import { createFileRoute, Outlet, redirect, Link, useNavigate } from "@tanstack/
 import { supabase } from "@/integrations/supabase/client";
 import { LogoWithText } from "@/components/Logo";
 import { Button } from "@/components/ui/button";
-import { LogOut, LayoutDashboard, Calendar, Users } from "lucide-react";
+import { LogOut, LayoutDashboard, Calendar } from "lucide-react";
 import { toast } from "sonner";
 
 export const Route = createFileRoute("/_authenticated")({
@@ -14,6 +14,20 @@ export const Route = createFileRoute("/_authenticated")({
   },
   component: AuthLayout,
 });
+
+function NavLink({ to, icon: Icon, label }: { to: string; icon: typeof LayoutDashboard; label: string }) {
+  return (
+    <Link
+      to={to}
+      className="flex items-center gap-3 rounded-lg px-3 py-2 text-sm font-medium text-foreground hover:bg-accent"
+      activeProps={{ className: "flex items-center gap-3 rounded-lg px-3 py-2 text-sm font-medium bg-gradient-gold text-primary-foreground" }}
+      activeOptions={{ exact: to === "/dashboard" }}
+    >
+      <Icon className="h-4 w-4" />
+      {label}
+    </Link>
+  );
+}
 
 function AuthLayout() {
   const { user } = Route.useRouteContext();
@@ -32,22 +46,8 @@ function AuthLayout() {
           <LogoWithText />
         </div>
         <nav className="flex-1 space-y-1 p-4">
-          <Link
-            to="/dashboard"
-            className="flex items-center gap-3 rounded-lg px-3 py-2 text-sm font-medium text-foreground hover:bg-accent"
-            activeProps={{ className: "flex items-center gap-3 rounded-lg px-3 py-2 text-sm font-medium bg-gradient-gold text-primary-foreground" }}
-          >
-            <LayoutDashboard className="h-4 w-4" />
-            Tableau de bord
-          </Link>
-          <div className="flex items-center gap-3 rounded-lg px-3 py-2 text-sm text-muted-foreground">
-            <Calendar className="h-4 w-4" />
-            Événements <span className="ml-auto text-[10px]">bientôt</span>
-          </div>
-          <div className="flex items-center gap-3 rounded-lg px-3 py-2 text-sm text-muted-foreground">
-            <Users className="h-4 w-4" />
-            Invités <span className="ml-auto text-[10px]">bientôt</span>
-          </div>
+          <NavLink to="/dashboard" icon={LayoutDashboard} label="Tableau de bord" />
+          <NavLink to="/events" icon={Calendar} label="Événements" />
         </nav>
         <div className="border-t border-border p-4">
           <div className="mb-3 truncate text-xs text-muted-foreground">{user.email}</div>
