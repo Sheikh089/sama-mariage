@@ -415,6 +415,39 @@ function EventDetail() {
           </Table>
         )}
       </div>
+
+      {/* Per-guest invitation dialog */}
+      <Dialog open={!!qrGuest} onOpenChange={(o) => !o && setQrGuest(null)}>
+        <DialogContent className="max-w-md">
+          <DialogHeader>
+            <DialogTitle>Invitation de {qrGuest?.full_name}</DialogTitle>
+          </DialogHeader>
+          {qrGuest && (
+            <div className="space-y-4">
+              <InvitationCard
+                data={{
+                  guestName: qrGuest.full_name,
+                  eventTitle: event.title,
+                  eventType: event.type,
+                  eventDate: event.event_date,
+                  eventLocation: event.location,
+                  eventDescription: event.description,
+                  customMessage: event.custom_message,
+                  coverImageUrl: event.cover_image_url,
+                  template: event.template,
+                  inviteUrl: inviteUrlFor(qrGuest.invite_token),
+                }}
+              />
+              <div className="flex items-center gap-2 rounded-lg border bg-muted/30 p-2">
+                <code className="flex-1 truncate text-xs">{inviteUrlFor(qrGuest.invite_token)}</code>
+                <Button size="sm" variant="outline" onClick={() => copyLink(qrGuest.invite_token)}>
+                  <Copy className="h-3 w-3" />
+                </Button>
+              </div>
+            </div>
+          )}
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }
