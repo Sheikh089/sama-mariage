@@ -417,6 +417,15 @@ function EventDetail() {
         )}
       </div>
 
+      {/* Send invitations */}
+      <div className="mt-8">
+        <SendInvitations
+          guests={guests}
+          event={{ title: event.title, type: event.type, event_date: event.event_date, location: event.location }}
+          inviteUrlFor={inviteUrlFor}
+        />
+      </div>
+
       {/* Per-guest invitation dialog */}
       <Dialog open={!!qrGuest} onOpenChange={(o) => !o && setQrGuest(null)}>
         <DialogContent className="max-w-md">
