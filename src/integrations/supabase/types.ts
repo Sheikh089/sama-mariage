@@ -156,6 +156,19 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
+      checkin_guest: {
+        Args: { _token: string }
+        Returns: {
+          already_checked_in: boolean
+          checked_in_at: string
+          companions: number
+          event_id: string
+          event_title: string
+          full_name: string
+          guest_id: string
+          rsvp_status: Database["public"]["Enums"]["rsvp_status"]
+        }[]
+      }
       get_invitation_by_token: {
         Args: { _token: string }
         Returns: {
