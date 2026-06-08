@@ -2,7 +2,7 @@ import { createFileRoute, Outlet, redirect, Link, useNavigate } from "@tanstack/
 import { supabase } from "@/integrations/supabase/client";
 import { LogoWithText } from "@/components/Logo";
 import { Button } from "@/components/ui/button";
-import { LogOut, LayoutDashboard, Calendar } from "lucide-react";
+import { LogOut, LayoutDashboard, Calendar, ScanLine } from "lucide-react";
 import { toast } from "sonner";
 
 export const Route = createFileRoute("/_authenticated")({
