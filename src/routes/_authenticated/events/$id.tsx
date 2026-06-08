@@ -22,6 +22,7 @@ import Papa from "papaparse";
 import { TEMPLATES, type Template } from "@/lib/invitation-templates";
 import { InvitationCard } from "@/components/InvitationCard";
 import { Textarea } from "@/components/ui/textarea";
+import { SendInvitations } from "@/components/SendInvitations";
 
 export const Route = createFileRoute("/_authenticated/events/$id")({
   head: () => ({ meta: [{ title: "Événement — Sama Mariage" }] }),
@@ -414,6 +415,15 @@ function EventDetail() {
             </TableBody>
           </Table>
         )}
+      </div>
+
+      {/* Send invitations */}
+      <div className="mt-8">
+        <SendInvitations
+          guests={guests}
+          event={{ title: event.title, type: event.type, event_date: event.event_date, location: event.location }}
+          inviteUrlFor={inviteUrlFor}
+        />
       </div>
 
       {/* Per-guest invitation dialog */}
