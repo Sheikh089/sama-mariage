@@ -48,6 +48,7 @@ function AuthLayout() {
         <nav className="flex-1 space-y-1 p-4">
           <NavLink to="/dashboard" icon={LayoutDashboard} label="Tableau de bord" />
           <NavLink to="/events" icon={Calendar} label="Événements" />
+          <NavLink to="/scan" icon={ScanLine} label="Scanner QR" />
         </nav>
         <div className="border-t border-border p-4">
           <div className="mb-3 truncate text-xs text-muted-foreground">{user.email}</div>
