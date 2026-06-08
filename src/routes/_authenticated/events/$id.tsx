@@ -22,6 +22,7 @@ import Papa from "papaparse";
 import { TEMPLATES, type Template } from "@/lib/invitation-templates";
 import { InvitationCard } from "@/components/InvitationCard";
 import { Textarea } from "@/components/ui/textarea";
+import { SendInvitations } from "@/components/SendInvitations";
 
 export const Route = createFileRoute("/_authenticated/events/$id")({
   head: () => ({ meta: [{ title: "Événement — Sama Mariage" }] }),
