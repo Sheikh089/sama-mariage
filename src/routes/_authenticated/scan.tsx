@@ -14,7 +14,9 @@ import {
   RefreshCw, LogOut, KeyRound,
 } from "lucide-react";
 import { useQuery } from "@tanstack/react-query";
-import { enqueue, getQueue, clearItem, type QueuedScan } from "@/lib/scan-queue";
+import { enqueue, getQueue, clearItem, appendSyncedLog, getSyncedLog, clearSyncedLog, type SyncedScan } from "@/lib/scan-queue";
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
+import { CheckCircle, XCircle, History } from "lucide-react";
 
 export const Route = createFileRoute("/_authenticated/scan")({
   head: () => ({ meta: [{ title: "Scanner QR — Sama Mariage" }] }),
@@ -103,19 +105,38 @@ function ScanPage() {
   const syncQueue = async () => {
     const q = await getQueue();
     if (q.length === 0) return;
-    let sent = 0;
+    let ok = 0, dup = 0, err = 0;
     for (const item of q) {
       try {
-        await callCheckin(item.token, item.session_token);
+        const row = await callCheckin(item.token, item.session_token);
+        const synced: SyncedScan = {
+          id: item.id, token: item.token, scanned_at: item.scanned_at,
+          synced_at: new Date().toISOString(),
+          status: row ? (row.already_checked_in ? "already" : "ok") : "error",
+          guest_name: row?.full_name, event_title: row?.event_title, companions: row?.companions,
+          error: row ? undefined : "Invitation introuvable",
+        };
+        await appendSyncedLog(synced);
         await clearItem(item.id);
-        sent++;
-      } catch {
-        // stop on first error to preserve order
-        break;
+        if (synced.status === "ok") ok++;
+        else if (synced.status === "already") dup++;
+        else err++;
+      } catch (e: any) {
+        // network error → stop; other errors → log and continue
+        const msg = e?.message ?? "Erreur";
+        if (msg.includes("Failed to fetch") || msg.includes("NetworkError")) break;
+        await appendSyncedLog({
+          id: item.id, token: item.token, scanned_at: item.scanned_at,
+          synced_at: new Date().toISOString(), status: "error", error: msg,
+        });
+        await clearItem(item.id);
+        err++;
       }
     }
     await refreshQueue();
-    if (sent > 0) toast.success(`${sent} scan(s) synchronisé(s)`);
+    if (ok + dup + err > 0) {
+      toast.success(`Sync : ${ok} validés · ${dup} doublons · ${err} erreurs`);
+    }
   };
 
   const isOwner = ownedEvents.length > 0;
@@ -323,6 +344,8 @@ function Scanner({
               <RefreshCw className="mr-1 h-3 w-3" /> Sync ({queueCount})
             </Button>
           )}
+          <SyncedLogDialog />
+
           {session && (
             <Button variant="outline" size="sm" onClick={onLogout}>
               <LogOut className="mr-1 h-3 w-3" /> Quitter
@@ -423,5 +446,50 @@ function Scanner({
         </div>
       </div>
     </div>
+  );
+}
+
+function SyncedLogDialog() {
+  const [log, setLog] = useState<SyncedScan[]>([]);
+  const load = async () => setLog(await getSyncedLog());
+  return (
+    <Dialog onOpenChange={(o) => o && load()}>
+      <DialogTrigger asChild>
+        <Button variant="outline" size="sm">
+          <History className="mr-1 h-3 w-3" /> Détail sync
+        </Button>
+      </DialogTrigger>
+      <DialogContent className="max-w-2xl">
+        <DialogHeader><DialogTitle>Scans synchronisés (100 derniers)</DialogTitle></DialogHeader>
+        {log.length === 0 ? (
+          <p className="text-sm text-muted-foreground">Aucun scan synchronisé pour le moment.</p>
+        ) : (
+          <div className="max-h-[60vh] space-y-2 overflow-auto">
+            {log.map((l) => (
+              <div key={l.id} className="flex items-center justify-between rounded-lg border border-border p-3 text-sm">
+                <div className="flex items-center gap-2">
+                  {l.status === "ok" && <CheckCircle className="h-4 w-4 text-green-600" />}
+                  {(l.status === "already" || l.status === "duplicate") && <AlertTriangle className="h-4 w-4 text-amber-500" />}
+                  {l.status === "error" && <XCircle className="h-4 w-4 text-red-500" />}
+                  <div>
+                    <div className="font-medium">{l.guest_name ?? l.error ?? "—"}</div>
+                    <div className="text-xs text-muted-foreground">
+                      Scanné {new Date(l.scanned_at).toLocaleTimeString("fr-FR")} · Sync {new Date(l.synced_at).toLocaleTimeString("fr-FR")}
+                      {l.event_title && ` · ${l.event_title}`}
+                    </div>
+                  </div>
+                </div>
+                <span className="text-xs uppercase text-muted-foreground">
+                  {l.status === "ok" ? "Validé" : l.status === "already" ? "Doublon" : l.status === "error" ? "Erreur" : "—"}
+                </span>
+              </div>
+            ))}
+            <Button variant="outline" size="sm" onClick={async () => { await clearSyncedLog(); load(); }}>
+              Vider l'historique
+            </Button>
+          </div>
+        )}
+      </DialogContent>
+    </Dialog>
   );
 }
