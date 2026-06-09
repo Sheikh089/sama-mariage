@@ -344,6 +344,8 @@ function Scanner({
               <RefreshCw className="mr-1 h-3 w-3" /> Sync ({queueCount})
             </Button>
           )}
+          <SyncedLogDialog />
+
           {session && (
             <Button variant="outline" size="sm" onClick={onLogout}>
               <LogOut className="mr-1 h-3 w-3" /> Quitter

@@ -1,8 +1,9 @@
 import { createFileRoute, Outlet, redirect, Link, useNavigate } from "@tanstack/react-router";
+import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { LogoWithText } from "@/components/Logo";
 import { Button } from "@/components/ui/button";
-import { LogOut, LayoutDashboard, Calendar, ScanLine } from "lucide-react";
+import { LogOut, LayoutDashboard, Calendar, ScanLine, ShieldCheck } from "lucide-react";
 import { toast } from "sonner";
 
 export const Route = createFileRoute("/_authenticated")({
@@ -33,6 +34,15 @@ function AuthLayout() {
   const { user } = Route.useRouteContext();
   const navigate = useNavigate();
 
+  const { data: isAdmin = false } = useQuery({
+    queryKey: ["is_admin", user.id],
+    queryFn: async () => {
+      const { data } = await supabase.from("user_roles").select("role").eq("user_id", user.id).eq("role", "admin");
+      return (data?.length ?? 0) > 0;
+    },
+  });
+
+
   const signOut = async () => {
     await supabase.auth.signOut();
     toast.success("Déconnecté");
@@ -49,6 +59,8 @@ function AuthLayout() {
           <NavLink to="/dashboard" icon={LayoutDashboard} label="Tableau de bord" />
           <NavLink to="/events" icon={Calendar} label="Événements" />
           <NavLink to="/scan" icon={ScanLine} label="Scanner QR" />
+          {isAdmin && <NavLink to="/admin" icon={ShieldCheck} label="Administration" />}
+
         </nav>
         <div className="border-t border-border p-4">
           <div className="mb-3 truncate text-xs text-muted-foreground">{user.email}</div>
