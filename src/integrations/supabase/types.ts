@@ -14,6 +14,83 @@ export type Database = {
   }
   public: {
     Tables: {
+      event_staff: {
+        Row: {
+          created_at: string
+          event_id: string
+          full_name: string
+          id: string
+          pin_hash: string
+          role: Database["public"]["Enums"]["app_role"]
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          event_id: string
+          full_name: string
+          id?: string
+          pin_hash: string
+          role?: Database["public"]["Enums"]["app_role"]
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          event_id?: string
+          full_name?: string
+          id?: string
+          pin_hash?: string
+          role?: Database["public"]["Enums"]["app_role"]
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "event_staff_event_id_fkey"
+            columns: ["event_id"]
+            isOneToOne: false
+            referencedRelation: "events"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      event_staff_sessions: {
+        Row: {
+          created_at: string
+          event_id: string
+          expires_at: string
+          staff_id: string
+          token: string
+        }
+        Insert: {
+          created_at?: string
+          event_id: string
+          expires_at: string
+          staff_id: string
+          token?: string
+        }
+        Update: {
+          created_at?: string
+          event_id?: string
+          expires_at?: string
+          staff_id?: string
+          token?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "event_staff_sessions_event_id_fkey"
+            columns: ["event_id"]
+            isOneToOne: false
+            referencedRelation: "events"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "event_staff_sessions_staff_id_fkey"
+            columns: ["staff_id"]
+            isOneToOne: false
+            referencedRelation: "event_staff"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       events: {
         Row: {
           cover_image_url: string | null
@@ -151,23 +228,62 @@ export type Database = {
         }
         Relationships: []
       }
+      user_roles: {
+        Row: {
+          created_at: string
+          id: string
+          role: Database["public"]["Enums"]["app_role"]
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          role: Database["public"]["Enums"]["app_role"]
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          role?: Database["public"]["Enums"]["app_role"]
+          user_id?: string
+        }
+        Relationships: []
+      }
     }
     Views: {
       [_ in never]: never
     }
     Functions: {
-      checkin_guest: {
-        Args: { _token: string }
-        Returns: {
-          already_checked_in: boolean
-          checked_in_at: string
-          companions: number
-          event_id: string
-          event_title: string
-          full_name: string
-          guest_id: string
-          rsvp_status: Database["public"]["Enums"]["rsvp_status"]
-        }[]
+      checkin_guest:
+        | {
+            Args: { _token: string }
+            Returns: {
+              already_checked_in: boolean
+              checked_in_at: string
+              companions: number
+              event_id: string
+              event_title: string
+              full_name: string
+              guest_id: string
+              rsvp_status: Database["public"]["Enums"]["rsvp_status"]
+            }[]
+          }
+        | {
+            Args: { _session_token?: string; _token: string }
+            Returns: {
+              already_checked_in: boolean
+              checked_in_at: string
+              companions: number
+              event_id: string
+              event_title: string
+              full_name: string
+              guest_id: string
+              rsvp_status: Database["public"]["Enums"]["rsvp_status"]
+            }[]
+          }
+      create_event_staff: {
+        Args: { _event_id: string; _full_name: string; _pin: string }
+        Returns: string
       }
       get_invitation_by_token: {
         Args: { _token: string }
@@ -187,6 +303,22 @@ export type Database = {
           rsvp_status: Database["public"]["Enums"]["rsvp_status"]
         }[]
       }
+      has_role: {
+        Args: {
+          _role: Database["public"]["Enums"]["app_role"]
+          _user_id: string
+        }
+        Returns: boolean
+      }
+      staff_login: {
+        Args: { _event_id: string; _full_name: string; _pin: string }
+        Returns: {
+          event_title: string
+          expires_at: string
+          session_token: string
+          staff_id: string
+        }[]
+      }
       submit_rsvp: {
         Args: {
           _companions: number
@@ -197,6 +329,7 @@ export type Database = {
       }
     }
     Enums: {
+      app_role: "admin" | "organizer" | "scanner"
       event_status: "brouillon" | "publie" | "termine" | "annule"
       event_type:
         | "mariage"
@@ -338,6 +471,7 @@ export type CompositeTypes<
 export const Constants = {
   public: {
     Enums: {
+      app_role: ["admin", "organizer", "scanner"],
       event_status: ["brouillon", "publie", "termine", "annule"],
       event_type: [
         "mariage",
