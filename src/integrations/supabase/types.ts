@@ -16,6 +16,9 @@ export type Database = {
     Tables: {
       event_staff: {
         Row: {
+          can_manage_guests: boolean
+          can_scan: boolean
+          can_view_guests: boolean
           created_at: string
           event_id: string
           full_name: string
@@ -25,6 +28,9 @@ export type Database = {
           updated_at: string
         }
         Insert: {
+          can_manage_guests?: boolean
+          can_scan?: boolean
+          can_view_guests?: boolean
           created_at?: string
           event_id: string
           full_name: string
@@ -34,6 +40,9 @@ export type Database = {
           updated_at?: string
         }
         Update: {
+          can_manage_guests?: boolean
+          can_scan?: boolean
+          can_view_guests?: boolean
           created_at?: string
           event_id?: string
           full_name?: string
@@ -201,6 +210,47 @@ export type Database = {
           },
         ]
       }
+      pin_audit_log: {
+        Row: {
+          created_at: string
+          event_id: string
+          full_name: string
+          id: string
+          ip: string | null
+          reason: string | null
+          success: boolean
+          user_agent: string | null
+        }
+        Insert: {
+          created_at?: string
+          event_id: string
+          full_name: string
+          id?: string
+          ip?: string | null
+          reason?: string | null
+          success: boolean
+          user_agent?: string | null
+        }
+        Update: {
+          created_at?: string
+          event_id?: string
+          full_name?: string
+          id?: string
+          ip?: string | null
+          reason?: string | null
+          success?: boolean
+          user_agent?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "pin_audit_log_event_id_fkey"
+            columns: ["event_id"]
+            isOneToOne: false
+            referencedRelation: "events"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       profiles: {
         Row: {
           avatar_url: string | null
@@ -225,6 +275,68 @@ export type Database = {
           id?: string
           phone?: string | null
           updated_at?: string
+        }
+        Relationships: []
+      }
+      staff_pin_lockout: {
+        Row: {
+          attempts: number
+          event_id: string
+          full_name_lc: string
+          id: string
+          locked_until: string | null
+          updated_at: string
+        }
+        Insert: {
+          attempts?: number
+          event_id: string
+          full_name_lc: string
+          id?: string
+          locked_until?: string | null
+          updated_at?: string
+        }
+        Update: {
+          attempts?: number
+          event_id?: string
+          full_name_lc?: string
+          id?: string
+          locked_until?: string | null
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "staff_pin_lockout_event_id_fkey"
+            columns: ["event_id"]
+            isOneToOne: false
+            referencedRelation: "events"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      subscriptions: {
+        Row: {
+          created_at: string
+          current_period_end: string | null
+          plan: Database["public"]["Enums"]["plan_tier"]
+          status: string
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          current_period_end?: string | null
+          plan?: Database["public"]["Enums"]["plan_tier"]
+          status?: string
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          current_period_end?: string | null
+          plan?: Database["public"]["Enums"]["plan_tier"]
+          status?: string
+          updated_at?: string
+          user_id?: string
         }
         Relationships: []
       }
@@ -254,6 +366,54 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
+      admin_find_invitation: {
+        Args: { _query: string }
+        Returns: {
+          checked_in_at: string
+          email: string
+          event_id: string
+          event_title: string
+          full_name: string
+          guest_id: string
+          invite_token: string
+          phone: string
+          rsvp_status: Database["public"]["Enums"]["rsvp_status"]
+        }[]
+      }
+      admin_list_events: {
+        Args: never
+        Returns: {
+          checked_in_count: number
+          event_date: string
+          guests_count: number
+          id: string
+          owner_email: string
+          status: Database["public"]["Enums"]["event_status"]
+          title: string
+          type: Database["public"]["Enums"]["event_type"]
+        }[]
+      }
+      admin_list_users: {
+        Args: never
+        Returns: {
+          created_at: string
+          email: string
+          events_count: number
+          full_name: string
+          plan: Database["public"]["Enums"]["plan_tier"]
+          user_id: string
+        }[]
+      }
+      admin_overview: { Args: never; Returns: Json }
+      admin_regenerate_token: { Args: { _guest_id: string }; Returns: string }
+      admin_reset_checkin: { Args: { _guest_id: string }; Returns: boolean }
+      admin_set_plan: {
+        Args: {
+          _plan: Database["public"]["Enums"]["plan_tier"]
+          _user_id: string
+        }
+        Returns: undefined
+      }
       checkin_guest:
         | {
             Args: { _token: string }
@@ -313,6 +473,9 @@ export type Database = {
       staff_login: {
         Args: { _event_id: string; _full_name: string; _pin: string }
         Returns: {
+          can_manage_guests: boolean
+          can_scan: boolean
+          can_view_guests: boolean
           event_title: string
           expires_at: string
           session_token: string
@@ -329,7 +492,7 @@ export type Database = {
       }
     }
     Enums: {
-      app_role: "admin" | "organizer" | "scanner"
+      app_role: "admin" | "organizer" | "scanner" | "validator" | "event_admin"
       event_status: "brouillon" | "publie" | "termine" | "annule"
       event_type:
         | "mariage"
@@ -343,6 +506,7 @@ export type Database = {
         | "luxe"
         | "minimaliste"
         | "gold_premium"
+      plan_tier: "essai" | "pro" | "premium"
       rsvp_status: "en_attente" | "confirme" | "refuse"
     }
     CompositeTypes: {
@@ -471,7 +635,7 @@ export type CompositeTypes<
 export const Constants = {
   public: {
     Enums: {
-      app_role: ["admin", "organizer", "scanner"],
+      app_role: ["admin", "organizer", "scanner", "validator", "event_admin"],
       event_status: ["brouillon", "publie", "termine", "annule"],
       event_type: [
         "mariage",
@@ -487,6 +651,7 @@ export const Constants = {
         "minimaliste",
         "gold_premium",
       ],
+      plan_tier: ["essai", "pro", "premium"],
       rsvp_status: ["en_attente", "confirme", "refuse"],
     },
   },
