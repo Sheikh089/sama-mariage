@@ -23,6 +23,7 @@ import { TEMPLATES, type Template } from "@/lib/invitation-templates";
 import { InvitationCard } from "@/components/InvitationCard";
 import { Textarea } from "@/components/ui/textarea";
 import { SendInvitations } from "@/components/SendInvitations";
+import { StaffManager } from "@/components/StaffManager";
 
 export const Route = createFileRoute("/_authenticated/events/$id")({
   head: () => ({ meta: [{ title: "Événement — Sama Mariage" }] }),
@@ -424,6 +425,13 @@ function EventDetail() {
           event={{ title: event.title, type: event.type, event_date: event.event_date, location: event.location }}
           inviteUrlFor={inviteUrlFor}
         />
+      </div>
+
+      {/* Staff / scanners */}
+      <StaffManager eventId={id} />
+
+      <div className="mt-4 rounded-xl border border-dashed border-border bg-muted/30 p-4 text-xs text-muted-foreground">
+        Identifiant à donner à votre équipe pour se connecter au scanner : <code className="text-foreground">{id}</code>
       </div>
 
       {/* Per-guest invitation dialog */}
