@@ -448,3 +448,48 @@ function Scanner({
     </div>
   );
 }
+
+function SyncedLogDialog() {
+  const [log, setLog] = useState<SyncedScan[]>([]);
+  const load = async () => setLog(await getSyncedLog());
+  return (
+    <Dialog onOpenChange={(o) => o && load()}>
+      <DialogTrigger asChild>
+        <Button variant="outline" size="sm">
+          <History className="mr-1 h-3 w-3" /> Détail sync
+        </Button>
+      </DialogTrigger>
+      <DialogContent className="max-w-2xl">
+        <DialogHeader><DialogTitle>Scans synchronisés (100 derniers)</DialogTitle></DialogHeader>
+        {log.length === 0 ? (
+          <p className="text-sm text-muted-foreground">Aucun scan synchronisé pour le moment.</p>
+        ) : (
+          <div className="max-h-[60vh] space-y-2 overflow-auto">
+            {log.map((l) => (
+              <div key={l.id} className="flex items-center justify-between rounded-lg border border-border p-3 text-sm">
+                <div className="flex items-center gap-2">
+                  {l.status === "ok" && <CheckCircle className="h-4 w-4 text-green-600" />}
+                  {(l.status === "already" || l.status === "duplicate") && <AlertTriangle className="h-4 w-4 text-amber-500" />}
+                  {l.status === "error" && <XCircle className="h-4 w-4 text-red-500" />}
+                  <div>
+                    <div className="font-medium">{l.guest_name ?? l.error ?? "—"}</div>
+                    <div className="text-xs text-muted-foreground">
+                      Scanné {new Date(l.scanned_at).toLocaleTimeString("fr-FR")} · Sync {new Date(l.synced_at).toLocaleTimeString("fr-FR")}
+                      {l.event_title && ` · ${l.event_title}`}
+                    </div>
+                  </div>
+                </div>
+                <span className="text-xs uppercase text-muted-foreground">
+                  {l.status === "ok" ? "Validé" : l.status === "already" ? "Doublon" : l.status === "error" ? "Erreur" : "—"}
+                </span>
+              </div>
+            ))}
+            <Button variant="outline" size="sm" onClick={async () => { await clearSyncedLog(); load(); }}>
+              Vider l'historique
+            </Button>
+          </div>
+        )}
+      </DialogContent>
+    </Dialog>
+  );
+}
