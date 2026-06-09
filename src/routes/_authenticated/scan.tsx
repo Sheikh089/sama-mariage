@@ -14,7 +14,9 @@ import {
   RefreshCw, LogOut, KeyRound,
 } from "lucide-react";
 import { useQuery } from "@tanstack/react-query";
-import { enqueue, getQueue, clearItem, type QueuedScan } from "@/lib/scan-queue";
+import { enqueue, getQueue, clearItem, appendSyncedLog, getSyncedLog, clearSyncedLog, type SyncedScan } from "@/lib/scan-queue";
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
+import { CheckCircle, XCircle, History } from "lucide-react";
 
 export const Route = createFileRoute("/_authenticated/scan")({
   head: () => ({ meta: [{ title: "Scanner QR — Sama Mariage" }] }),
@@ -103,19 +105,38 @@ function ScanPage() {
   const syncQueue = async () => {
     const q = await getQueue();
     if (q.length === 0) return;
-    let sent = 0;
+    let ok = 0, dup = 0, err = 0;
     for (const item of q) {
       try {
-        await callCheckin(item.token, item.session_token);
+        const row = await callCheckin(item.token, item.session_token);
+        const synced: SyncedScan = {
+          id: item.id, token: item.token, scanned_at: item.scanned_at,
+          synced_at: new Date().toISOString(),
+          status: row ? (row.already_checked_in ? "already" : "ok") : "error",
+          guest_name: row?.full_name, event_title: row?.event_title, companions: row?.companions,
+          error: row ? undefined : "Invitation introuvable",
+        };
+        await appendSyncedLog(synced);
         await clearItem(item.id);
-        sent++;
-      } catch {
-        // stop on first error to preserve order
-        break;
+        if (synced.status === "ok") ok++;
+        else if (synced.status === "already") dup++;
+        else err++;
+      } catch (e: any) {
+        // network error → stop; other errors → log and continue
+        const msg = e?.message ?? "Erreur";
+        if (msg.includes("Failed to fetch") || msg.includes("NetworkError")) break;
+        await appendSyncedLog({
+          id: item.id, token: item.token, scanned_at: item.scanned_at,
+          synced_at: new Date().toISOString(), status: "error", error: msg,
+        });
+        await clearItem(item.id);
+        err++;
       }
     }
     await refreshQueue();
-    if (sent > 0) toast.success(`${sent} scan(s) synchronisé(s)`);
+    if (ok + dup + err > 0) {
+      toast.success(`Sync : ${ok} validés · ${dup} doublons · ${err} erreurs`);
+    }
   };
 
   const isOwner = ownedEvents.length > 0;
