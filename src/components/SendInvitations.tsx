@@ -2,8 +2,17 @@ import { useMemo, useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 import { Label } from "@/components/ui/label";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 import { toast } from "sonner";
-import { MessageCircle, Mail, Phone, Send, Copy, Users } from "lucide-react";
+import { MessageCircle, Mail, Phone, Send, Copy, Users, Sparkles, Loader2 } from "lucide-react";
+import { useServerFn } from "@tanstack/react-start";
+import { generateInvitationMessage } from "@/lib/api/ai-invitation.functions";
 
 type Guest = {
   id: string;
@@ -44,6 +53,30 @@ function cleanPhone(p?: string | null) {
 
 export function SendInvitations({ guests, event, inviteUrlFor }: Props) {
   const [template, setTemplate] = useState(DEFAULT_TEMPLATE);
+  const [tone, setTone] = useState<"romantique" | "professionnel" | "chaleureux" | "elegant">("elegant");
+  const [generating, setGenerating] = useState(false);
+  const generate = useServerFn(generateInvitationMessage);
+
+  const handleGenerate = async () => {
+    setGenerating(true);
+    try {
+      const { message } = await generate({
+        data: {
+          eventTitle: event.title,
+          eventType: event.type,
+          eventDate: event.event_date,
+          location: event.location,
+          tone,
+        },
+      });
+      setTemplate(message);
+      toast.success("Message généré par l'IA");
+    } catch (e) {
+      toast.error(e instanceof Error ? e.message : "Échec de la génération");
+    } finally {
+      setGenerating(false);
+    }
+  };
 
   const formattedDate = event.event_date
     ? new Date(event.event_date).toLocaleString("fr-FR", { dateStyle: "long", timeStyle: "short" })
@@ -110,6 +143,30 @@ export function SendInvitations({ guests, event, inviteUrlFor }: Props) {
       <p className="mt-1 text-sm text-muted-foreground">
         Personnalisez le message puis envoyez via WhatsApp, SMS ou Email. Variables : <code>{"{name} {event} {date} {location} {link}"}</code>
       </p>
+
+      <div className="mt-4 rounded-xl border border-dashed border-gold/40 bg-gold/5 p-3">
+        <div className="flex flex-wrap items-end gap-2">
+          <div className="flex-1 min-w-[180px]">
+            <Label className="text-xs">Ton du message</Label>
+            <Select value={tone} onValueChange={(v) => setTone(v as typeof tone)}>
+              <SelectTrigger><SelectValue /></SelectTrigger>
+              <SelectContent>
+                <SelectItem value="elegant">Élégant & professionnel</SelectItem>
+                <SelectItem value="romantique">Romantique</SelectItem>
+                <SelectItem value="chaleureux">Chaleureux</SelectItem>
+                <SelectItem value="professionnel">Strictement professionnel</SelectItem>
+              </SelectContent>
+            </Select>
+          </div>
+          <Button onClick={handleGenerate} disabled={generating} className="bg-gold text-background hover:bg-gold/90">
+            {generating ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Sparkles className="mr-2 h-4 w-4" />}
+            Générer avec l'IA
+          </Button>
+        </div>
+        <p className="mt-2 text-xs text-muted-foreground">
+          L'IA rédige un message adapté à votre événement en conservant les variables {"{name} {event} {date} {location} {link}"}.
+        </p>
+      </div>
 
       <div className="mt-4">
         <Label>Message</Label>
