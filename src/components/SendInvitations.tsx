@@ -53,6 +53,30 @@ function cleanPhone(p?: string | null) {
 
 export function SendInvitations({ guests, event, inviteUrlFor }: Props) {
   const [template, setTemplate] = useState(DEFAULT_TEMPLATE);
+  const [tone, setTone] = useState<"romantique" | "professionnel" | "chaleureux" | "elegant">("elegant");
+  const [generating, setGenerating] = useState(false);
+  const generate = useServerFn(generateInvitationMessage);
+
+  const handleGenerate = async () => {
+    setGenerating(true);
+    try {
+      const { message } = await generate({
+        data: {
+          eventTitle: event.title,
+          eventType: event.type,
+          eventDate: event.event_date,
+          location: event.location,
+          tone,
+        },
+      });
+      setTemplate(message);
+      toast.success("Message généré par l'IA");
+    } catch (e) {
+      toast.error(e instanceof Error ? e.message : "Échec de la génération");
+    } finally {
+      setGenerating(false);
+    }
+  };
 
   const formattedDate = event.event_date
     ? new Date(event.event_date).toLocaleString("fr-FR", { dateStyle: "long", timeStyle: "short" })
