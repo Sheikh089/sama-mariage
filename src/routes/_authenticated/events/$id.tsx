@@ -24,6 +24,7 @@ import { InvitationCard } from "@/components/InvitationCard";
 import { Textarea } from "@/components/ui/textarea";
 import { SendInvitations } from "@/components/SendInvitations";
 import { StaffManager } from "@/components/StaffManager";
+import { PlanLockBanner } from "@/components/PlanLockBanner";
 
 export const Route = createFileRoute("/_authenticated/events/$id")({
   head: () => ({ meta: [{ title: "Événement — Sama Mariage" }] }),
@@ -178,6 +179,9 @@ function EventDetail() {
       <Link to="/events" className="mb-4 inline-flex items-center gap-2 text-sm text-muted-foreground hover:text-foreground">
         <ArrowLeft className="h-4 w-4" /> Tous les événements
       </Link>
+
+      <PlanLockBanner eventId={id} />
+
 
       <div className="overflow-hidden rounded-2xl border border-border bg-card">
         <div className="relative aspect-[21/8] bg-muted">
