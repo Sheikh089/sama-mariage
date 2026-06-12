@@ -144,6 +144,30 @@ export function SendInvitations({ guests, event, inviteUrlFor }: Props) {
         Personnalisez le message puis envoyez via WhatsApp, SMS ou Email. Variables : <code>{"{name} {event} {date} {location} {link}"}</code>
       </p>
 
+      <div className="mt-4 rounded-xl border border-dashed border-gold/40 bg-gold/5 p-3">
+        <div className="flex flex-wrap items-end gap-2">
+          <div className="flex-1 min-w-[180px]">
+            <Label className="text-xs">Ton du message</Label>
+            <Select value={tone} onValueChange={(v) => setTone(v as typeof tone)}>
+              <SelectTrigger><SelectValue /></SelectTrigger>
+              <SelectContent>
+                <SelectItem value="elegant">Élégant & professionnel</SelectItem>
+                <SelectItem value="romantique">Romantique</SelectItem>
+                <SelectItem value="chaleureux">Chaleureux</SelectItem>
+                <SelectItem value="professionnel">Strictement professionnel</SelectItem>
+              </SelectContent>
+            </Select>
+          </div>
+          <Button onClick={handleGenerate} disabled={generating} className="bg-gold text-background hover:bg-gold/90">
+            {generating ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Sparkles className="mr-2 h-4 w-4" />}
+            Générer avec l'IA
+          </Button>
+        </div>
+        <p className="mt-2 text-xs text-muted-foreground">
+          L'IA rédige un message adapté à votre événement en conservant les variables {"{name} {event} {date} {location} {link}"}.
+        </p>
+      </div>
+
       <div className="mt-4">
         <Label>Message</Label>
         <Textarea rows={7} value={template} onChange={(e) => setTemplate(e.target.value)} />
