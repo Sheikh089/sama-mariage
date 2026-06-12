@@ -445,6 +445,7 @@ export type Database = {
         Args: { _event_id: string; _full_name: string; _pin: string }
         Returns: string
       }
+      event_plan_status: { Args: { _event_id: string }; Returns: Json }
       get_invitation_by_token: {
         Args: { _token: string }
         Returns: {
@@ -470,6 +471,10 @@ export type Database = {
         }
         Returns: boolean
       }
+      plan_limits: {
+        Args: { _plan: Database["public"]["Enums"]["plan_tier"] }
+        Returns: Json
+      }
       staff_login: {
         Args: { _event_id: string; _full_name: string; _pin: string }
         Returns: {
@@ -489,6 +494,10 @@ export type Database = {
           _token: string
         }
         Returns: boolean
+      }
+      user_plan: {
+        Args: { _user_id: string }
+        Returns: Database["public"]["Enums"]["plan_tier"]
       }
     }
     Enums: {
