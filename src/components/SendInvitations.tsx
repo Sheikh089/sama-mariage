@@ -248,6 +248,16 @@ export function SendInvitations({ guests, event, inviteUrlFor }: Props) {
       </div>
 
       <div className="mt-4 flex flex-wrap gap-2">
+        <Button
+          onClick={handleGenerateAll}
+          disabled={bulkGenerating || guests.length === 0}
+          className="bg-gradient-gold text-primary-foreground"
+        >
+          {bulkGenerating ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Wand2 className="mr-2 h-4 w-4" />}
+          {bulkGenerating
+            ? `Génération… ${bulkProgress.done}/${bulkProgress.total}`
+            : `Générer un message IA par invité (${guests.length})`}
+        </Button>
         <Button variant="outline" onClick={openBulkWhatsApp}>
           <MessageCircle className="mr-2 h-4 w-4" /> WhatsApp à tous ({withPhone.length})
         </Button>
@@ -257,6 +267,17 @@ export function SendInvitations({ guests, event, inviteUrlFor }: Props) {
         <Button variant="outline" onClick={copyAll}>
           <Copy className="mr-2 h-4 w-4" /> Copier tous les liens
         </Button>
+        {Object.keys(personalMessages).length > 0 && (
+          <Button
+            variant="ghost"
+            onClick={() => {
+              setPersonalMessages({});
+              toast.success("Messages personnalisés effacés");
+            }}
+          >
+            Réinitialiser les messages IA
+          </Button>
+        )}
       </div>
 
       <div className="mt-6 overflow-hidden rounded-xl border border-border">
@@ -270,12 +291,35 @@ export function SendInvitations({ guests, event, inviteUrlFor }: Props) {
           {guests.map((g) => (
             <li key={g.id} className="flex flex-wrap items-center justify-between gap-2 p-3">
               <div className="min-w-0">
-                <div className="truncate font-medium">{g.full_name}</div>
+                <div className="flex items-center gap-2">
+                  <span className="truncate font-medium">{g.full_name}</span>
+                  {personalMessages[g.id] && (
+                    <Badge variant="secondary" className="gap-1 text-[10px]">
+                      <Sparkles className="h-3 w-3" /> IA
+                    </Badge>
+                  )}
+                </div>
                 <div className="truncate text-xs text-muted-foreground">
                   {g.phone || "—"} {g.email && `· ${g.email}`}
                 </div>
               </div>
               <div className="flex gap-1">
+                <Button
+                  size="sm"
+                  variant="outline"
+                  title="Générer un message IA personnalisé"
+                  onClick={() => handleGenerateOne(g)}
+                  disabled={busyGuestId === g.id || bulkGenerating}
+                >
+                  {busyGuestId === g.id ? (
+                    <Loader2 className="h-4 w-4 animate-spin" />
+                  ) : (
+                    <Sparkles className="h-4 w-4" />
+                  )}
+                </Button>
+                <Button size="sm" variant="outline" title="Voir / éditer le message" onClick={() => openEdit(g)}>
+                  <Pencil className="h-4 w-4" />
+                </Button>
                 <Button asChild size="sm" variant="outline" disabled={!g.phone} title="WhatsApp">
                   <a href={waLink(g)} target="_blank" rel="noreferrer">
                     <MessageCircle className="h-4 w-4" />
@@ -296,6 +340,80 @@ export function SendInvitations({ guests, event, inviteUrlFor }: Props) {
           ))}
         </ul>
       </div>
+
+      <Dialog open={!!editGuest} onOpenChange={(o) => !o && setEditGuest(null)}>
+        <DialogContent className="max-w-lg">
+          <DialogHeader>
+            <DialogTitle>Message pour {editGuest?.full_name}</DialogTitle>
+          </DialogHeader>
+          {editGuest && (
+            <div className="space-y-3">
+              <div>
+                <Label className="text-xs">Note personnelle pour l'IA (optionnel)</Label>
+                <Input
+                  placeholder="Ex : ami d'enfance, témoin, collègue de bureau…"
+                  value={editNote}
+                  onChange={(e) => setEditNote(e.target.value)}
+                />
+              </div>
+              <div>
+                <Label className="text-xs">Message envoyé à cet invité</Label>
+                <Textarea
+                  rows={8}
+                  value={editValue || messageFor(editGuest)}
+                  onChange={(e) => setEditValue(e.target.value)}
+                />
+                <p className="mt-1 text-[11px] text-muted-foreground">
+                  Variable disponible : <code>{"{link}"}</code> (remplacée par le lien unique de l'invité).
+                </p>
+              </div>
+              <DialogFooter className="gap-2 sm:gap-2">
+                <Button
+                  variant="outline"
+                  disabled={busyGuestId === editGuest.id}
+                  onClick={async () => {
+                    if (!editGuest) return;
+                    setBusyGuestId(editGuest.id);
+                    setPersonalNotes((n) => ({ ...n, [editGuest.id]: editNote }));
+                    try {
+                      const msg = await generateForGuest(editGuest, editNote);
+                      setEditValue(msg);
+                      setPersonalMessages((m) => ({ ...m, [editGuest.id]: msg }));
+                      toast.success("Message régénéré");
+                    } catch (e) {
+                      toast.error(e instanceof Error ? e.message : "Échec de la génération");
+                    } finally {
+                      setBusyGuestId(null);
+                    }
+                  }}
+                >
+                  {busyGuestId === editGuest.id ? (
+                    <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                  ) : (
+                    <Sparkles className="mr-2 h-4 w-4" />
+                  )}
+                  Régénérer avec l'IA
+                </Button>
+                <Button
+                  onClick={() => {
+                    if (!editGuest) return;
+                    setPersonalMessages((m) => ({ ...m, [editGuest.id]: editValue }));
+                    setPersonalNotes((n) => ({ ...n, [editGuest.id]: editNote }));
+                    setEditGuest(null);
+                    toast.success("Message enregistré");
+                  }}
+                  className="bg-gradient-gold text-primary-foreground"
+                >
+                  Enregistrer
+                </Button>
+              </DialogFooter>
+            </div>
+          )}
+        </DialogContent>
+      </Dialog>
+    </div>
+  );
+}
     </div>
   );
 }
