@@ -60,7 +60,19 @@ export function SendInvitations({ guests, event, inviteUrlFor }: Props) {
   const [template, setTemplate] = useState(DEFAULT_TEMPLATE);
   const [tone, setTone] = useState<"romantique" | "professionnel" | "chaleureux" | "elegant">("elegant");
   const [generating, setGenerating] = useState(false);
+  const [bulkGenerating, setBulkGenerating] = useState(false);
+  const [bulkProgress, setBulkProgress] = useState({ done: 0, total: 0 });
+  const [personalMessages, setPersonalMessages] = useState<Record<string, string>>({});
+  const [personalNotes, setPersonalNotes] = useState<Record<string, string>>({});
+  const [busyGuestId, setBusyGuestId] = useState<string | null>(null);
+  const [editGuest, setEditGuest] = useState<Guest | null>(null);
+  const [editValue, setEditValue] = useState("");
+  const [editNote, setEditNote] = useState("");
   const generate = useServerFn(generateInvitationMessage);
+
+  const formattedDate = event.event_date
+    ? new Date(event.event_date).toLocaleString("fr-FR", { dateStyle: "long", timeStyle: "short" })
+    : "";
 
   const handleGenerate = async () => {
     setGenerating(true);
@@ -83,12 +95,68 @@ export function SendInvitations({ guests, event, inviteUrlFor }: Props) {
     }
   };
 
-  const formattedDate = event.event_date
-    ? new Date(event.event_date).toLocaleString("fr-FR", { dateStyle: "long", timeStyle: "short" })
-    : "";
+  const generateForGuest = async (g: Guest, note?: string) => {
+    const { message } = await generate({
+      data: {
+        eventTitle: event.title,
+        eventType: event.type,
+        eventDate: event.event_date,
+        location: event.location,
+        tone,
+        guestName: g.full_name,
+        guestNote: note ?? personalNotes[g.id] ?? null,
+      },
+    });
+    return message;
+  };
 
-  const messageFor = (g: Guest) =>
-    render(template, {
+  const handleGenerateOne = async (g: Guest) => {
+    setBusyGuestId(g.id);
+    try {
+      const msg = await generateForGuest(g);
+      setPersonalMessages((m) => ({ ...m, [g.id]: msg }));
+      toast.success(`Message personnalisé généré pour ${g.full_name}`);
+    } catch (e) {
+      toast.error(e instanceof Error ? e.message : "Échec de la génération");
+    } finally {
+      setBusyGuestId(null);
+    }
+  };
+
+  const handleGenerateAll = async () => {
+    if (guests.length === 0) return;
+    if (!confirm(`Générer un message IA personnalisé pour les ${guests.length} invités ?`)) return;
+    setBulkGenerating(true);
+    setBulkProgress({ done: 0, total: guests.length });
+    const next: Record<string, string> = { ...personalMessages };
+    let ok = 0;
+    for (const g of guests) {
+      try {
+        next[g.id] = await generateForGuest(g);
+        ok++;
+      } catch (e) {
+        toast.error(`${g.full_name} : ${e instanceof Error ? e.message : "échec"}`);
+      }
+      setBulkProgress((p) => ({ ...p, done: p.done + 1 }));
+      setPersonalMessages({ ...next });
+      await new Promise((r) => setTimeout(r, 250));
+    }
+    setBulkGenerating(false);
+    toast.success(`${ok} message(s) personnalisé(s) généré(s)`);
+  };
+
+  const openEdit = (g: Guest) => {
+    setEditGuest(g);
+    setEditValue(personalMessages[g.id] ?? "");
+    setEditNote(personalNotes[g.id] ?? "");
+  };
+
+  const messageFor = (g: Guest) => {
+    const personal = personalMessages[g.id];
+    if (personal) {
+      return personal.replace(/\{link\}/g, inviteUrlFor(g.invite_token));
+    }
+    return render(template, {
       name: g.full_name,
       event: event.title,
       type: event.type,
@@ -96,6 +164,7 @@ export function SendInvitations({ guests, event, inviteUrlFor }: Props) {
       location: event.location ? ` à ${event.location}` : "",
       link: inviteUrlFor(g.invite_token),
     });
+  };
 
   const waLink = (g: Guest) => {
     const phone = cleanPhone(g.phone).replace(/^\+/, "");
