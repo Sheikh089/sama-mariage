@@ -8,6 +8,8 @@ const InputSchema = z.object({
   location: z.string().max(200).optional().nullable(),
   tone: z.enum(["romantique", "professionnel", "chaleureux", "elegant"]).default("elegant"),
   extra: z.string().max(500).optional().nullable(),
+  guestName: z.string().max(120).optional().nullable(),
+  guestNote: z.string().max(300).optional().nullable(),
 });
 
 export const generateInvitationMessage = createServerFn({ method: "POST" })
