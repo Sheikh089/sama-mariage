@@ -1,6 +1,7 @@
 import { useMemo, useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
+import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import {
   Select,
@@ -9,8 +10,12 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
+import {
+  Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter,
+} from "@/components/ui/dialog";
+import { Badge } from "@/components/ui/badge";
 import { toast } from "sonner";
-import { MessageCircle, Mail, Phone, Send, Copy, Users, Sparkles, Loader2 } from "lucide-react";
+import { MessageCircle, Mail, Phone, Send, Copy, Users, Sparkles, Loader2, Wand2, Pencil } from "lucide-react";
 import { useServerFn } from "@tanstack/react-start";
 import { generateInvitationMessage } from "@/lib/api/ai-invitation.functions";
 
