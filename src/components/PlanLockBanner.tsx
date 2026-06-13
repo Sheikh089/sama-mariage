@@ -1,4 +1,5 @@
 import { useQuery } from "@tanstack/react-query";
+import { Link } from "@tanstack/react-router";
 import { supabase } from "@/integrations/supabase/client";
 import { AlertTriangle, Lock, Sparkles } from "lucide-react";
 
@@ -46,11 +47,20 @@ export function PlanLockBanner({ eventId, sessionToken }: { eventId: string; ses
           {data.over_guests && " · trop d'invités"}
           {data.over_events && " · trop d'événements"}
         </div>
-        {data.locked && (
-          <div className="mt-2 inline-flex items-center gap-1 text-xs font-medium">
-            <Sparkles className="h-3 w-3" /> Mettez à niveau l'abonnement pour réactiver la validation.
-          </div>
-        )}
+        <div className="mt-2 flex flex-wrap items-center gap-2">
+          {data.locked && (
+            <span className="inline-flex items-center gap-1 text-xs font-medium">
+              <Sparkles className="h-3 w-3" /> Mettez à niveau l'abonnement pour réactiver la validation.
+            </span>
+          )}
+          <Link
+            to="/upgrade"
+            search={{ event: eventId, from: "banner" }}
+            className="inline-flex items-center gap-1 rounded-md bg-gradient-gold px-3 py-1 text-xs font-semibold text-primary-foreground hover:opacity-90"
+          >
+            <Sparkles className="h-3 w-3" /> Voir les paliers
+          </Link>
+        </div>
       </div>
     </div>
   );
