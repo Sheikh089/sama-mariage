@@ -25,7 +25,18 @@ export const generateInvitationMessage = createServerFn({ method: "POST" })
       elegant: "raffiné, élégant et professionnel",
     };
 
-    const system = `Tu es un rédacteur d'invitations en français. Rédige un message d'invitation court (4 à 7 lignes), au ton ${toneLabel[data.tone]}, prêt à être envoyé par WhatsApp/SMS/Email.
+    const personal = !!data.guestName;
+    const system = personal
+      ? `Tu es un rédacteur d'invitations en français. Rédige un message PERSONNEL court (4 à 7 lignes), au ton ${toneLabel[data.tone]}, adressé directement à l'invité nommé ci-dessous, prêt à être envoyé par WhatsApp/SMS/Email.
+
+RÈGLES IMPÉRATIVES :
+- Commence par "Bonjour ${data.guestName}," (utilise le vrai prénom/nom donné, pas de variable).
+- Mentionne le titre de l'événement, la date et le lieu en clair (pas de variables).
+- Ajoute UNE phrase personnalisée qui s'adresse à cet invité spécifiquement.
+- Termine impérativement par une ligne : "Voici votre invitation : {link}" (garde {link} littéral, c'est la SEULE variable autorisée).
+- Pas d'emojis, pas de markdown, pas de guillemets autour du message.
+- Réponds uniquement avec le message final, sans préambule.`
+      : `Tu es un rédacteur d'invitations en français. Rédige un message d'invitation court (4 à 7 lignes), au ton ${toneLabel[data.tone]}, prêt à être envoyé par WhatsApp/SMS/Email.
 
 RÈGLES IMPÉRATIVES :
 - Utilise EXACTEMENT ces variables littérales (avec accolades) : {name}, {event}, {date}, {location}, {link}.
@@ -40,6 +51,8 @@ RÈGLES IMPÉRATIVES :
 Titre : ${data.eventTitle}
 ${data.eventDate ? `Date : ${data.eventDate}` : ""}
 ${data.location ? `Lieu : ${data.location}` : ""}
+${data.guestName ? `Invité : ${data.guestName}` : ""}
+${data.guestNote ? `Note sur cet invité : ${data.guestNote}` : ""}
 ${data.extra ? `Détails additionnels : ${data.extra}` : ""}`;
 
     const res = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
