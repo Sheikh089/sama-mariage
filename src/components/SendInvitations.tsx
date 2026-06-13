@@ -1,6 +1,7 @@
 import { useMemo, useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
+import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import {
   Select,
@@ -9,8 +10,12 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
+import {
+  Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter,
+} from "@/components/ui/dialog";
+import { Badge } from "@/components/ui/badge";
 import { toast } from "sonner";
-import { MessageCircle, Mail, Phone, Send, Copy, Users, Sparkles, Loader2 } from "lucide-react";
+import { MessageCircle, Mail, Phone, Send, Copy, Users, Sparkles, Loader2, Wand2, Pencil } from "lucide-react";
 import { useServerFn } from "@tanstack/react-start";
 import { generateInvitationMessage } from "@/lib/api/ai-invitation.functions";
 
@@ -55,7 +60,19 @@ export function SendInvitations({ guests, event, inviteUrlFor }: Props) {
   const [template, setTemplate] = useState(DEFAULT_TEMPLATE);
   const [tone, setTone] = useState<"romantique" | "professionnel" | "chaleureux" | "elegant">("elegant");
   const [generating, setGenerating] = useState(false);
+  const [bulkGenerating, setBulkGenerating] = useState(false);
+  const [bulkProgress, setBulkProgress] = useState({ done: 0, total: 0 });
+  const [personalMessages, setPersonalMessages] = useState<Record<string, string>>({});
+  const [personalNotes, setPersonalNotes] = useState<Record<string, string>>({});
+  const [busyGuestId, setBusyGuestId] = useState<string | null>(null);
+  const [editGuest, setEditGuest] = useState<Guest | null>(null);
+  const [editValue, setEditValue] = useState("");
+  const [editNote, setEditNote] = useState("");
   const generate = useServerFn(generateInvitationMessage);
+
+  const formattedDate = event.event_date
+    ? new Date(event.event_date).toLocaleString("fr-FR", { dateStyle: "long", timeStyle: "short" })
+    : "";
 
   const handleGenerate = async () => {
     setGenerating(true);
@@ -78,12 +95,68 @@ export function SendInvitations({ guests, event, inviteUrlFor }: Props) {
     }
   };
 
-  const formattedDate = event.event_date
-    ? new Date(event.event_date).toLocaleString("fr-FR", { dateStyle: "long", timeStyle: "short" })
-    : "";
+  const generateForGuest = async (g: Guest, note?: string) => {
+    const { message } = await generate({
+      data: {
+        eventTitle: event.title,
+        eventType: event.type,
+        eventDate: event.event_date,
+        location: event.location,
+        tone,
+        guestName: g.full_name,
+        guestNote: note ?? personalNotes[g.id] ?? null,
+      },
+    });
+    return message;
+  };
 
-  const messageFor = (g: Guest) =>
-    render(template, {
+  const handleGenerateOne = async (g: Guest) => {
+    setBusyGuestId(g.id);
+    try {
+      const msg = await generateForGuest(g);
+      setPersonalMessages((m) => ({ ...m, [g.id]: msg }));
+      toast.success(`Message personnalisé généré pour ${g.full_name}`);
+    } catch (e) {
+      toast.error(e instanceof Error ? e.message : "Échec de la génération");
+    } finally {
+      setBusyGuestId(null);
+    }
+  };
+
+  const handleGenerateAll = async () => {
+    if (guests.length === 0) return;
+    if (!confirm(`Générer un message IA personnalisé pour les ${guests.length} invités ?`)) return;
+    setBulkGenerating(true);
+    setBulkProgress({ done: 0, total: guests.length });
+    const next: Record<string, string> = { ...personalMessages };
+    let ok = 0;
+    for (const g of guests) {
+      try {
+        next[g.id] = await generateForGuest(g);
+        ok++;
+      } catch (e) {
+        toast.error(`${g.full_name} : ${e instanceof Error ? e.message : "échec"}`);
+      }
+      setBulkProgress((p) => ({ ...p, done: p.done + 1 }));
+      setPersonalMessages({ ...next });
+      await new Promise((r) => setTimeout(r, 250));
+    }
+    setBulkGenerating(false);
+    toast.success(`${ok} message(s) personnalisé(s) généré(s)`);
+  };
+
+  const openEdit = (g: Guest) => {
+    setEditGuest(g);
+    setEditValue(personalMessages[g.id] ?? "");
+    setEditNote(personalNotes[g.id] ?? "");
+  };
+
+  const messageFor = (g: Guest) => {
+    const personal = personalMessages[g.id];
+    if (personal) {
+      return personal.replace(/\{link\}/g, inviteUrlFor(g.invite_token));
+    }
+    return render(template, {
       name: g.full_name,
       event: event.title,
       type: event.type,
@@ -91,6 +164,7 @@ export function SendInvitations({ guests, event, inviteUrlFor }: Props) {
       location: event.location ? ` à ${event.location}` : "",
       link: inviteUrlFor(g.invite_token),
     });
+  };
 
   const waLink = (g: Guest) => {
     const phone = cleanPhone(g.phone).replace(/^\+/, "");
@@ -174,6 +248,16 @@ export function SendInvitations({ guests, event, inviteUrlFor }: Props) {
       </div>
 
       <div className="mt-4 flex flex-wrap gap-2">
+        <Button
+          onClick={handleGenerateAll}
+          disabled={bulkGenerating || guests.length === 0}
+          className="bg-gradient-gold text-primary-foreground"
+        >
+          {bulkGenerating ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Wand2 className="mr-2 h-4 w-4" />}
+          {bulkGenerating
+            ? `Génération… ${bulkProgress.done}/${bulkProgress.total}`
+            : `Générer un message IA par invité (${guests.length})`}
+        </Button>
         <Button variant="outline" onClick={openBulkWhatsApp}>
           <MessageCircle className="mr-2 h-4 w-4" /> WhatsApp à tous ({withPhone.length})
         </Button>
@@ -183,6 +267,17 @@ export function SendInvitations({ guests, event, inviteUrlFor }: Props) {
         <Button variant="outline" onClick={copyAll}>
           <Copy className="mr-2 h-4 w-4" /> Copier tous les liens
         </Button>
+        {Object.keys(personalMessages).length > 0 && (
+          <Button
+            variant="ghost"
+            onClick={() => {
+              setPersonalMessages({});
+              toast.success("Messages personnalisés effacés");
+            }}
+          >
+            Réinitialiser les messages IA
+          </Button>
+        )}
       </div>
 
       <div className="mt-6 overflow-hidden rounded-xl border border-border">
@@ -196,12 +291,35 @@ export function SendInvitations({ guests, event, inviteUrlFor }: Props) {
           {guests.map((g) => (
             <li key={g.id} className="flex flex-wrap items-center justify-between gap-2 p-3">
               <div className="min-w-0">
-                <div className="truncate font-medium">{g.full_name}</div>
+                <div className="flex items-center gap-2">
+                  <span className="truncate font-medium">{g.full_name}</span>
+                  {personalMessages[g.id] && (
+                    <Badge variant="secondary" className="gap-1 text-[10px]">
+                      <Sparkles className="h-3 w-3" /> IA
+                    </Badge>
+                  )}
+                </div>
                 <div className="truncate text-xs text-muted-foreground">
                   {g.phone || "—"} {g.email && `· ${g.email}`}
                 </div>
               </div>
               <div className="flex gap-1">
+                <Button
+                  size="sm"
+                  variant="outline"
+                  title="Générer un message IA personnalisé"
+                  onClick={() => handleGenerateOne(g)}
+                  disabled={busyGuestId === g.id || bulkGenerating}
+                >
+                  {busyGuestId === g.id ? (
+                    <Loader2 className="h-4 w-4 animate-spin" />
+                  ) : (
+                    <Sparkles className="h-4 w-4" />
+                  )}
+                </Button>
+                <Button size="sm" variant="outline" title="Voir / éditer le message" onClick={() => openEdit(g)}>
+                  <Pencil className="h-4 w-4" />
+                </Button>
                 <Button asChild size="sm" variant="outline" disabled={!g.phone} title="WhatsApp">
                   <a href={waLink(g)} target="_blank" rel="noreferrer">
                     <MessageCircle className="h-4 w-4" />
@@ -222,6 +340,77 @@ export function SendInvitations({ guests, event, inviteUrlFor }: Props) {
           ))}
         </ul>
       </div>
+
+      <Dialog open={!!editGuest} onOpenChange={(o) => !o && setEditGuest(null)}>
+        <DialogContent className="max-w-lg">
+          <DialogHeader>
+            <DialogTitle>Message pour {editGuest?.full_name}</DialogTitle>
+          </DialogHeader>
+          {editGuest && (
+            <div className="space-y-3">
+              <div>
+                <Label className="text-xs">Note personnelle pour l'IA (optionnel)</Label>
+                <Input
+                  placeholder="Ex : ami d'enfance, témoin, collègue de bureau…"
+                  value={editNote}
+                  onChange={(e) => setEditNote(e.target.value)}
+                />
+              </div>
+              <div>
+                <Label className="text-xs">Message envoyé à cet invité</Label>
+                <Textarea
+                  rows={8}
+                  value={editValue || messageFor(editGuest)}
+                  onChange={(e) => setEditValue(e.target.value)}
+                />
+                <p className="mt-1 text-[11px] text-muted-foreground">
+                  Variable disponible : <code>{"{link}"}</code> (remplacée par le lien unique de l'invité).
+                </p>
+              </div>
+              <DialogFooter className="gap-2 sm:gap-2">
+                <Button
+                  variant="outline"
+                  disabled={busyGuestId === editGuest.id}
+                  onClick={async () => {
+                    if (!editGuest) return;
+                    setBusyGuestId(editGuest.id);
+                    setPersonalNotes((n) => ({ ...n, [editGuest.id]: editNote }));
+                    try {
+                      const msg = await generateForGuest(editGuest, editNote);
+                      setEditValue(msg);
+                      setPersonalMessages((m) => ({ ...m, [editGuest.id]: msg }));
+                      toast.success("Message régénéré");
+                    } catch (e) {
+                      toast.error(e instanceof Error ? e.message : "Échec de la génération");
+                    } finally {
+                      setBusyGuestId(null);
+                    }
+                  }}
+                >
+                  {busyGuestId === editGuest.id ? (
+                    <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                  ) : (
+                    <Sparkles className="mr-2 h-4 w-4" />
+                  )}
+                  Régénérer avec l'IA
+                </Button>
+                <Button
+                  onClick={() => {
+                    if (!editGuest) return;
+                    setPersonalMessages((m) => ({ ...m, [editGuest.id]: editValue }));
+                    setPersonalNotes((n) => ({ ...n, [editGuest.id]: editNote }));
+                    setEditGuest(null);
+                    toast.success("Message enregistré");
+                  }}
+                  className="bg-gradient-gold text-primary-foreground"
+                >
+                  Enregistrer
+                </Button>
+              </DialogFooter>
+            </div>
+          )}
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }
