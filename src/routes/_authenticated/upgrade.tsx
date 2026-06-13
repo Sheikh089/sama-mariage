@@ -115,7 +115,7 @@ function UpgradePage() {
         <h1 className="mt-4 font-display text-4xl font-semibold md:text-5xl">Choisissez votre palier</h1>
         <p className="mt-3 text-muted-foreground">
           Palier actuel : <strong className="text-foreground">{currentPlan.toUpperCase()}</strong>
-          {status?.event_title ? ` · événement « ${(status as any).event_title} »` : ""}
+          {search.event ? ` · événement lié` : ""}
         </p>
       </div>
 
