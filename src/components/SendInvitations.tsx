@@ -414,6 +414,3 @@ export function SendInvitations({ guests, event, inviteUrlFor }: Props) {
     </div>
   );
 }
-    </div>
-  );
-}
