@@ -108,7 +108,7 @@ function Dashboard() {
     queryFn: async () => {
       const { data, error } = await supabase
         .from("guests")
-        .select("id, rsvp_status, companions, event_id, created_at, gender");
+        .select("id, rsvp_status, companions, event_id, created_at");
       if (error) throw error;
       return data ?? [];
     },
